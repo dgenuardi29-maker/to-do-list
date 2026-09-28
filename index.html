@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big Red's Top 25 Poll Workspace</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<div class="workspace">
+    <!-- Non-capturing Interactive Dashboard Area -->
+    <div class="card">
+        <h2>🏈 Select and Seat Teams from 138 FBS Database Options</h2>
+        <div class="control-row">
+            <select id="teamSelector" class="search-select">
+                <!-- Sorted entries loaded dynamically via JS function -->
+            </select>
+            <button class="btn btn-insert" onclick="addSelectedTeam()">Insert Team</button>
+            <button class="btn btn-photo" onclick="capturePollSnapshot()">📸 Take Photo</button>
+        </div>
+    </div>
+
+    <!-- Clean Snapshot Grid Capture Interface Layer -->
+    <div id="captureZone">
+        <header>
+            <div class="custom-title-box">Big Red's Poll</div>
+            <div style="margin-top: 8px;">
+                <span style="font-size: 1.3rem; font-weight: 700; color: #6c757d;">Week: </span>
+                <input type="text" class="custom-week-input" value="5" title="Click to change the week parameter">
+            </div>
+            <p style="color:#868e96; font-weight: 500; margin: 8px 0 0 0; font-size: 0.95rem;">Strict Merit and Resume Based Evaluation</p>
+        </header>
+
+        <div class="card" style="box-shadow: none; border: 1px solid var(--border-tint);">
+            <ul id="top25Container" class="poll-list"></ul>
+            <div id="emptyNotice" class="status-empty">Your custom Top 25 is empty. Inject elements using the control card above!</div>
+        </div>
+    </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
