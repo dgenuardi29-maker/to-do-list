@@ -3,7 +3,7 @@ let currentSelectionList = [];
 let dragInteractionsRegistered = false;
 
 // Automated live network link - continuously maintained and refreshed every week
-const LIVE_STANDINGS_DATABASE = "https://githubusercontent.com";
+const LIVE_STANDINGS_DATABASE = "./records.json";
 const PROFILE_NAME_KEY = 'pollProfileName';
 const PROFILE_PHOTO_KEY = 'pollProfilePhoto';
 
@@ -38,14 +38,23 @@ const PRELOADED_POLL_IDS = [
 
 async function fetchLiveRecords() {
     try {
-        const response = await fetch(LIVE_STANDINGS_DATABASE);
+        const response = await fetch(`${LIVE_STANDINGS_DATABASE}?t=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) throw new Error("Network response stalled");
-        
-        fbsRegistry = await response.json();
+
+        const recordData = await response.json();
+        if (!Array.isArray(recordData.teams) || !recordData.updatedAt) {
+            throw new Error("The records file has an invalid format");
+        }
+
+        fbsRegistry = recordData.teams;
+        document.getElementById('recordStatus').textContent =
+            `Team records updated ${new Date(recordData.updatedAt).toLocaleDateString()}.`;
         setupInterfaceDropdown();
         prepopulateUserPoll();
     } catch (error) {
-        console.warn("Live database connection timed out. Booting local fail-safe backup parameters...", error);
+        console.warn("Could not load refreshed records. Using the bundled fallback records.", error);
+        document.getElementById('recordStatus').textContent =
+            'Live records are unavailable; showing saved fallback records.';
         
         // Full Fail-Safe Dataset of all 138 FBS Teams with 2026 real-world record baselines
         fbsRegistry = [
