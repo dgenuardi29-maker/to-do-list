@@ -2,16 +2,43 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const mainSource = await readFile(new URL('../main.js', import.meta.url), 'utf8');
 const teamPattern = /^[ \t]*\{ name: ("(?:[^"\\]|\\.)*"), wins: \d+, losses: \d+, id: "(\d+)" \}/gm;
-const teamsById = new Map();
+const teamsByName = new Map();
 
 for (const match of mainSource.matchAll(teamPattern)) {
     const team = { name: JSON.parse(match[1]), id: match[2] };
-    teamsById.set(team.id, team);
+    teamsByName.set(team.name, team);
 }
 
-const teams = [...teamsById.values()];
+const teams = [...teamsByName.values()];
 if (teams.length < 100) {
     throw new Error(`Expected at least 100 fallback teams, found ${teams.length}.`);
+}
+
+const normalizeName = name => name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+const nameAliases = new Map([
+    ['Appalachian State Mountaineers', 'App State Mountaineers'],
+    ['Connecticut Huskies', 'UConn Huskies'],
+    ['FIU Panthers', 'Florida International Panthers'],
+    ['Miami RedHawks', 'Miami (OH) RedHawks'],
+    ['ULM Warhawks', 'UL Monroe Warhawks']
+]);
+const directoryTeams = new Map();
+
+for (let page = 1; ; page += 1) {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams?limit=500&page=${page}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`Could not load ESPN team directory: HTTP ${response.status}`);
+
+    const data = await response.json();
+    const directoryPage = data.sports?.[0]?.leagues?.[0]?.teams?.map(entry => entry.team) || [];
+    for (const team of directoryPage) {
+        directoryTeams.set(normalizeName(team.displayName), team);
+    }
+    if (directoryPage.length < 500) break;
 }
 
 const now = new Date();
@@ -19,7 +46,11 @@ const season = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYea
 const records = [];
 
 async function fetchRecord(team) {
-    const url = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/${team.id}?season=${season}`;
+    const displayName = nameAliases.get(team.name) || team.name;
+    const directoryTeam = directoryTeams.get(normalizeName(displayName));
+    if (!directoryTeam) throw new Error(`Could not match ${team.name} to ESPN's team directory`);
+
+    const url = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/${directoryTeam.id}?season=${season}`;
 
     for (let attempt = 1; attempt <= 3; attempt += 1) {
         try {
@@ -34,7 +65,12 @@ async function fetchRecord(team) {
             const match = summary?.match(/^(\d+)-(\d+)(?:-\d+)?$/);
             if (!match) throw new Error(`No overall record found for ${team.name}`);
 
-            return { ...team, wins: Number(match[1]), losses: Number(match[2]) };
+            return {
+                name: team.name,
+                id: directoryTeam.id,
+                wins: Number(match[1]),
+                losses: Number(match[2])
+            };
         } catch (error) {
             if (attempt === 3) throw new Error(`Could not update ${team.name}: ${error.message}`);
             await new Promise(resolve => setTimeout(resolve, attempt * 1000));
