@@ -13,6 +13,22 @@
     <!-- Non-capturing Interactive Dashboard Area -->
     <div class="card">
         <h2>🏈 Select and Seat Teams from 138 FBS Database Options</h2>
+        <div class="profile-editor">
+            <div class="profile-avatar-wrap">
+                <img id="profilePhotoPreview" class="profile-avatar" alt="Profile photo" hidden>
+                <span id="profileInitials" class="profile-initials" aria-hidden="true">PO</span>
+            </div>
+            <div class="profile-fields">
+                <label for="profileNameInput">Your name</label>
+                <input id="profileNameInput" class="profile-name-input" type="text" maxlength="40" autocomplete="name" placeholder="Enter your name">
+                <div class="profile-actions">
+                    <input id="profilePhotoInput" class="visually-hidden" type="file" accept="image/*" capture="user">
+                    <button id="profilePhotoButton" class="btn btn-photo" type="button">Take / choose photo</button>
+                    <button id="removeProfilePhotoButton" class="btn btn-remove-photo" type="button" hidden>Remove photo</button>
+                </div>
+                <p id="profileStatus" class="profile-status" role="status" aria-live="polite">Your name and photo are saved on this device.</p>
+            </div>
+        </div>
         <div class="control-row">
             <select id="teamSelector" class="search-select">
                 <!-- Sorted entries loaded dynamically via JS function -->
@@ -25,6 +41,13 @@
     <!-- Clean Snapshot Grid Capture Interface Layer -->
     <div id="captureZone">
         <header>
+            <div class="poll-owner">
+                <div class="poll-owner-avatar-wrap">
+                    <img id="pollOwnerPhoto" class="poll-owner-avatar" alt="" hidden>
+                    <span id="pollOwnerInitials" class="poll-owner-initials" aria-hidden="true">PO</span>
+                </div>
+                <span id="pollOwnerName">Poll owner</span>
+            </div>
             <div class="custom-title-box">Big Red's Poll</div>
             <div style="margin-top: 8px;">
                 <span style="font-size: 1.3rem; font-weight: 700; color: #6c757d;">Week: </span>

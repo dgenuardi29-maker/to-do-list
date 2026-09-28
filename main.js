@@ -4,6 +4,8 @@ let dragInteractionsRegistered = false;
 
 // Automated live network link - continuously maintained and refreshed every week
 const LIVE_STANDINGS_DATABASE = "https://githubusercontent.com";
+const PROFILE_NAME_KEY = 'pollProfileName';
+const PROFILE_PHOTO_KEY = 'pollProfilePhoto';
 
 // Map preloaded Week 5 user poll configuration directly into starting state
 const PRELOADED_POLL_IDS = [
@@ -370,7 +372,127 @@ function registerDragInteractions() {
     });
 }
 
+function updateProfileName() {
+    const name = document.getElementById('profileNameInput').value.trim();
+    const initials = name
+        ? name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()
+        : 'PO';
+
+    document.getElementById('pollOwnerName').textContent = name || 'Poll owner';
+    document.querySelector('.custom-title-box').textContent = name ? `${name}'s Poll` : "Big Red's Poll";
+    document.getElementById('profileInitials').textContent = initials;
+    document.getElementById('pollOwnerInitials').textContent = initials;
+}
+
+function displayProfilePhoto(photoData) {
+    const editorPhoto = document.getElementById('profilePhotoPreview');
+    const ownerPhoto = document.getElementById('pollOwnerPhoto');
+    editorPhoto.src = photoData;
+    ownerPhoto.src = photoData;
+    editorPhoto.hidden = false;
+    ownerPhoto.hidden = false;
+    document.getElementById('profileInitials').hidden = true;
+    document.getElementById('pollOwnerInitials').hidden = true;
+    document.getElementById('removeProfilePhotoButton').hidden = false;
+}
+
+function initializeProfile() {
+    const nameInput = document.getElementById('profileNameInput');
+    const photoInput = document.getElementById('profilePhotoInput');
+    const status = document.getElementById('profileStatus');
+
+    try {
+        nameInput.value = localStorage.getItem(PROFILE_NAME_KEY) || '';
+        const savedPhoto = localStorage.getItem(PROFILE_PHOTO_KEY);
+        if (savedPhoto) displayProfilePhoto(savedPhoto);
+    } catch (error) {
+        status.textContent = 'This browser could not load saved profile details.';
+    }
+
+    updateProfileName();
+    nameInput.addEventListener('input', () => {
+        updateProfileName();
+        try {
+            localStorage.setItem(PROFILE_NAME_KEY, nameInput.value);
+            status.textContent = 'Your name and photo are saved on this device.';
+        } catch (error) {
+            status.textContent = 'Your name could not be saved in this browser.';
+        }
+    });
+
+    document.getElementById('profilePhotoButton').addEventListener('click', () => photoInput.click());
+    document.getElementById('removeProfilePhotoButton').addEventListener('click', () => {
+        try {
+            localStorage.removeItem(PROFILE_PHOTO_KEY);
+            document.getElementById('profilePhotoPreview').hidden = true;
+            document.getElementById('pollOwnerPhoto').hidden = true;
+            document.getElementById('profileInitials').hidden = false;
+            document.getElementById('pollOwnerInitials').hidden = false;
+            document.getElementById('removeProfilePhotoButton').hidden = true;
+            status.textContent = 'Profile photo removed.';
+        } catch (error) {
+            status.textContent = 'The profile photo could not be removed.';
+        }
+    });
+
+    photoInput.addEventListener('change', () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            status.textContent = 'Choose an image file for your profile photo.';
+            photoInput.value = '';
+            return;
+        }
+
+        const imageUrl = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => {
+            const size = 512;
+            const cropSize = Math.min(image.naturalWidth, image.naturalHeight);
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const context = canvas.getContext('2d');
+            URL.revokeObjectURL(imageUrl);
+            photoInput.value = '';
+
+            if (!context) {
+                status.textContent = 'This browser could not prepare the profile photo.';
+                return;
+            }
+
+            context.drawImage(
+                image,
+                (image.naturalWidth - cropSize) / 2,
+                (image.naturalHeight - cropSize) / 2,
+                cropSize,
+                cropSize,
+                0,
+                0,
+                size,
+                size
+            );
+
+            try {
+                const photoData = canvas.toDataURL('image/jpeg', 0.82);
+                localStorage.setItem(PROFILE_PHOTO_KEY, photoData);
+                displayProfilePhoto(photoData);
+                status.textContent = 'Profile photo saved on this device.';
+            } catch (error) {
+                status.textContent = 'The photo could not be saved. Try a smaller image.';
+            }
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(imageUrl);
+            photoInput.value = '';
+            status.textContent = 'That image could not be opened. Try another photo.';
+        };
+        image.src = imageUrl;
+    });
+}
+
 window.onload = () => {
+    initializeProfile();
     fetchLiveRecords();
     drawBoardElements();
 };
